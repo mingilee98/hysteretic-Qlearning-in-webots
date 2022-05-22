@@ -213,41 +213,80 @@ public class HystereticQLearning1 {
             // backward
             while (robot.step(32) != -1) {
 
-                double currentTime = robot.getTime();
+                // read sensors outputs
+                double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
+                for (int i = 0; i < 8; i++)
+                    psValues[i] = ps[i].getValue();
 
+                // detect obstacles
+                boolean front_obstacle = psValues[3] > 100.0 ||
+                        psValues[4] > 100.0;
+                boolean back_obstacle = psValues[0] > 100.0 ||
+                        psValues[7] > 100.0;
+
+                // modify speeds according to obstacles
+                if (front_obstacle || back_obstacle) {
+                    // stop
+                    leftSpeed = 0;
+                    rightSpeed = 0;
+
+                    System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
+                    System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
+                }
+
+                // write actuators inputs
                 leftMotor.setVelocity(-leftSpeed);
                 rightMotor.setVelocity(-rightSpeed);
 
-                if (currentTime > 3) {
-                    leftMotor.setVelocity(0);
-                    rightMotor.setVelocity(0);
-                }
+                // double currentTime = robot.getTime();
+
+                // leftMotor.setVelocity(-leftSpeed);
+                // rightMotor.setVelocity(-rightSpeed);
+
+                // if (currentTime > 3) {
+                // leftMotor.setVelocity(0);
+                // rightMotor.setVelocity(0);
+                // }
             }
         } else if (action == 1) {
             // forward
             while (robot.step(32) != -1) {
+                // read sensors outputs
+                double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
+                for (int i = 0; i < 8; i++)
+                    psValues[i] = ps[i].getValue();
 
-                double currentTime = robot.getTime();
+                // detect obstacles
+                boolean front_obstacle = psValues[3] > 100.0 ||
+                        psValues[4] > 100.0;
+                boolean back_obstacle = psValues[0] > 100.0 ||
+                        psValues[7] > 100.0;
+
+                // modify speeds according to obstacles
+                if (front_obstacle || back_obstacle) {
+                    // stop
+                    leftSpeed = 0;
+                    rightSpeed = 0;
+                    System.out.println("Agent2");
+                    System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
+                    System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
+
+                }
 
                 leftMotor.setVelocity(leftSpeed);
                 rightMotor.setVelocity(rightSpeed);
 
-                if (currentTime > 3) {
-                    leftMotor.setVelocity(0);
-                    rightMotor.setVelocity(0);
-
-                    // read sensors outputs
-                    double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
-                    for (int i = 0; i < 8; i++)
-                        psValues[i] = ps[i].getValue();
-
-                    // detect obstacles
-                    System.out.println("Robot 1");
-                    System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
-                    System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
-                }
             }
         }
+
+        // // read sensors outputs
+        // double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        // for (int i = 0; i < 8; i++)
+        // psValues[i] = ps[i].getValue();
+
+        // // detect obstacles
+        // System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
+        // System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
 
         // boolean right_obstacle = psValues[0] > 80.0 ||
         // psValues[1] > 80.0 ||
@@ -258,4 +297,5 @@ public class HystereticQLearning1 {
 
         // initialize motor speeds at 50% of MAX_SPEED.
     }
+
 }
