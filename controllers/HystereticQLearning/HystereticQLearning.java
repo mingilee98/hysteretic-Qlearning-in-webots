@@ -13,6 +13,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 import com.cyberbotics.webots.controller.Robot;
 import com.cyberbotics.webots.controller.DistanceSensor;
 import com.cyberbotics.webots.controller.Motor;
@@ -20,6 +22,8 @@ import com.cyberbotics.webots.controller.Motor;
 // Here is the main class of your controller.
 // This class defines how to initialize and how to run your controller.
 public class HystereticQLearning {
+
+  public static int[][] rewardTable = new int[][] { { 11, 0 }, { 0, -30 } };
 
   int actionCount; // Number of actions that an agent can have
 
@@ -67,7 +71,6 @@ public class HystereticQLearning {
         }
         action++;
       }
-
       return bestAction;
     } else {
       return randAction;
@@ -203,100 +206,104 @@ public class HystereticQLearning {
     leftMotor.setVelocity(0.0);
     rightMotor.setVelocity(0.0);
 
-    // choose action
-    int action = agent.chooseAction(0.9);
+    double currentTime = 0.0;
 
-    double leftSpeed = 0.5 * MAX_SPEED;
-    double rightSpeed = 0.5 * MAX_SPEED;
+    for (int t = 0; t < 10; t++) {
+      // choose action
+      int action = agent.chooseAction(0.9);
 
-    if (action == 0) {
+      double leftSpeed = 0.5 * MAX_SPEED;
+      double rightSpeed = 0.5 * MAX_SPEED;
+      double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
+      boolean front_obstacle = false;
+      boolean back_obstacle = false;
+
+      if (action == 1) {
+        System.out.println("stay");
+        currentTime += 2.0;
+        // backward
+        while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
+          for (int i = 0; i < 8; i++)
+            psValues[i] = ps[i].getValue();
+        }
+      } else if (action == 0) {
+        System.out.println("move forward");
+        currentTime += 2.0;
+        // forward
+        while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
+          // read sensors outputs
+          for (int i = 0; i < 8; i++)
+            psValues[i] = ps[i].getValue();
+
+          // detect obstacles
+          front_obstacle = psValues[3] > 100.0 ||
+              psValues[4] > 100.0;
+          back_obstacle = psValues[0] > 100.0 ||
+              psValues[7] > 100.0;
+
+          // modify speeds according to obstacles
+          if (front_obstacle) {
+            // stop
+            leftSpeed = 0;
+            rightSpeed = 0;
+          }
+
+          // write actuators inputs
+          leftMotor.setVelocity(-leftSpeed);
+          rightMotor.setVelocity(-rightSpeed);
+
+        }
+      }
+
+      boolean hasCenter = false;
+
+      if (psValues[5] >= 80.0) {
+        // has something on the same side
+        hasCenter = true;
+      }
+
+      int reward = Integer.MIN_VALUE;
+
+      if (action == 1) {
+        reward = hasCenter ? -30 : 0;
+      } else if (action == 0) {
+        reward = hasCenter ? 11 : 0;
+      }
+
+      System.out.println("Agent1");
+      System.out.println("reward : " + reward + " action: " + action + " Center: " + hasCenter);
+
+      leftSpeed = MAX_SPEED * 0.5;
+      rightSpeed = MAX_SPEED * 0.5;
+
+      System.out.println("return");
+      currentTime += 2.0;
       // backward
-      while (robot.step(32) != -1) {
+      while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
 
         // read sensors outputs
-        double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
         for (int i = 0; i < 8; i++)
           psValues[i] = ps[i].getValue();
 
         // detect obstacles
-        boolean front_obstacle = psValues[3] > 100.0 ||
+        front_obstacle = psValues[3] > 100.0 ||
             psValues[4] > 100.0;
-        boolean back_obstacle = psValues[0] > 100.0 ||
+        back_obstacle = psValues[0] > 100.0 ||
             psValues[7] > 100.0;
 
         // modify speeds according to obstacles
-        if (front_obstacle || back_obstacle) {
+        if (back_obstacle) {
+
           // stop
           leftSpeed = 0;
           rightSpeed = 0;
-          System.out.println("Agent1");
 
-          System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
-          System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
         }
 
         // write actuators inputs
-        leftMotor.setVelocity(-leftSpeed);
-        rightMotor.setVelocity(-rightSpeed);
-
-        // double currentTime = robot.getTime();
-
-        // leftMotor.setVelocity(-leftSpeed);
-        // rightMotor.setVelocity(-rightSpeed);
-
-        // if (currentTime > 3) {
-        // leftMotor.setVelocity(0);
-        // rightMotor.setVelocity(0);
-        // }
-      }
-    } else if (action == 1) {
-      // forward
-      while (robot.step(32) != -1) {
-        // read sensors outputs
-        double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
-        for (int i = 0; i < 8; i++)
-          psValues[i] = ps[i].getValue();
-
-        // detect obstacles
-        boolean front_obstacle = psValues[3] > 100.0 ||
-            psValues[4] > 100.0;
-        boolean back_obstacle = psValues[0] > 100.0 ||
-            psValues[7] > 100.0;
-
-        // modify speeds according to obstacles
-        if (front_obstacle || back_obstacle) {
-          // stop
-          leftSpeed = 0;
-          rightSpeed = 0;
-
-          System.out.println("Agent1");
-          System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
-          System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
-
-        }
-
         leftMotor.setVelocity(leftSpeed);
         rightMotor.setVelocity(rightSpeed);
-
       }
     }
-
-    // // read sensors outputs
-    // double[] psValues = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    // for (int i = 0; i < 8; i++)
-    // psValues[i] = ps[i].getValue();
-
-    // // detect obstacles
-    // System.out.println("sensor 3 : " + psValues[3] + "sensor 4: " + psValues[4]);
-    // System.out.println("sensor 0 : " + psValues[0] + "sensor 7: " + psValues[7]);
-
-    // boolean right_obstacle = psValues[0] > 80.0 ||
-    // psValues[1] > 80.0 ||
-    // psValues[2] > 80.0;
-    // boolean left_obstacle = psValues[5] > 80.0 ||
-    // psValues[6] > 80.0 ||
-    // psValues[7] > 80.0;
-
-    // initialize motor speeds at 50% of MAX_SPEED.
   }
 }
