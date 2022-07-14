@@ -1,7 +1,7 @@
-// File:          HystereticQLearning.java
+// File: HystereticQLearning.java
 // Date:
-// Description:
-// Author:
+// Description: Hysteretic Q Learning
+// Author: Mingi Lee
 // Modifications:
 
 // You may need to add other webots classes such as
@@ -28,6 +28,7 @@ public class HystereticQLearning {
   int actionCount; // Number of actions that an agent can have
 
   public double[] Q; // Q learning table for agent 1
+  public int[] rewards = new int[3000];
 
   private double gamma = 0;
   private double alpha = 0.1;
@@ -86,8 +87,7 @@ public class HystereticQLearning {
     double pos = rand.nextDouble();
 
     double cumulatedPi = 0;
-    // double max = Integer.MIN_VALUE;
-    // [0.2, 0.3, 0.5]
+
     for (int j = 0; j < actionCount; j++) {
       double q = Q[j];
       double sum = 0;
@@ -104,9 +104,7 @@ public class HystereticQLearning {
       }
     }
 
-    // function fail
     return -1;
-
   }
 
   public boolean isZero(double value, double threshold) {
@@ -208,9 +206,9 @@ public class HystereticQLearning {
 
     double currentTime = 0.0;
 
-    for (int t = 0; t < 10; t++) {
+    for (int t = 0; t < 3000; t++) {
       // choose action
-      int action = agent.chooseAction(0.9);
+      int action = agent.chooseActionSoftmax(t + 1);
 
       double leftSpeed = 0.5 * MAX_SPEED;
       double rightSpeed = 0.5 * MAX_SPEED;
@@ -219,15 +217,15 @@ public class HystereticQLearning {
       boolean back_obstacle = false;
 
       if (action == 1) {
-        System.out.println("stay");
+        System.out.println("agent1: stay");
         currentTime += 2.0;
-        // backward
+        // backwar
         while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
           for (int i = 0; i < 8; i++)
             psValues[i] = ps[i].getValue();
         }
       } else if (action == 0) {
-        System.out.println("move forward");
+        System.out.println("agent1: move forward");
         currentTime += 2.0;
         // forward
         while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
@@ -270,13 +268,15 @@ public class HystereticQLearning {
         reward = hasCenter ? 11 : 0;
       }
 
-      System.out.println("Agent1");
-      System.out.println("reward : " + reward + " action: " + action + " Center: " + hasCenter);
+      agent.updateQ(reward, action);
+      agent.rewards[t] = reward;
+
+      System.out.println("Agent1 trial " + t);
+      System.out.println("reward : " + reward + " action: " + action);
 
       leftSpeed = MAX_SPEED * 0.5;
       rightSpeed = MAX_SPEED * 0.5;
 
-      System.out.println("return");
       currentTime += 2.0;
       // backward
       while (robot.step(TIME_STEP) != -1 && (robot.getTime() < currentTime)) {
@@ -305,5 +305,19 @@ public class HystereticQLearning {
         rightMotor.setVelocity(rightSpeed);
       }
     }
+    System.out.println("agent 1 Qtable:");
+    for (double q : agent.Q) {
+      System.out.print(q + " ");
+    }
+    System.out.println();
+
+    System.out.println("agent 1 rewards:");
+    for (double r : agent.rewards) {
+      System.out.print(r + " ");
+    }
+    System.out.println();
+
+    System.out.println("end");
+
   }
 }
